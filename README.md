@@ -48,12 +48,15 @@ inputs.devsuite = {
 ### Now rebuild your config
 
 🔧 Available Options
-Option | Description | Default
-`programs.devsuite.enable` | Enables the devsuite module | `false`
-`programs.devsuite.vscode.enable` | Installs VSCode FHS with tools | `false`
-`programs.devsuite.idea.enable` | Installs IDEA Community with OpenJDK | `false`
+| Option | Description | Default |
+|---------------------------------------|------------------------------------------|---------|
+| `programs.devsuite.enable` | Enables the devsuite module | `false` |
+| `programs.devsuite.vscode.enable` | Installs VSCode FHS with tools | `false` |
+| `programs.devsuite.idea.enable` | Installs IDEA Community with OpenJDK | `false` |
 
 📂 Directory Structure
+
+```
 devsuite/
 ├── flake.nix # Entry point
 ├── README.md # This file
@@ -61,6 +64,7 @@ devsuite/
 ├── devsuite.nix # Master toggle + imports
 ├── vscode.nix # VSCode module
 └── idea.nix # IDEA module
+```
 
 💡 Troubleshooting
 
