@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./github/assets/devsuite.png" alt="DevSuite Logo" width="300" style="border-radius: 20px;">
+</p>
+
 # 💻 DevSuite
 
 **DevSuite** is a modular NixOS flake that provides developer-focused tooling with one toggleable system module:
@@ -39,7 +43,10 @@ inputs.devsuite = {
 
   programs.devsuite = {
     enable = true;
-    vscode.enable = true;
+    vscode = {
+       enable = true;
+       depedencies = ["node" "anythingElse"];
+    }
     idea.enable = true;
   };
 }
@@ -47,26 +54,28 @@ inputs.devsuite = {
 
 ### Now rebuild your config
 
-🔧 Available Options
-| Option | Description | Default |
-|---------------------------------------|------------------------------------------|---------|
-| `programs.devsuite.enable` | Enables the devsuite module | `false` |
-| `programs.devsuite.vscode.enable` | Installs VSCode FHS with tools | `false` |
-| `programs.devsuite.idea.enable` | Installs IDEA Community with OpenJDK | `false` |
+## 🔧 Available Options
 
-📂 Directory Structure
+| Option                                 | Description                          | Default |
+| -------------------------------------- | ------------------------------------ | ------- |
+| `programs.devsuite.enable`             | Enables the devsuite module          | `false` |
+| `programs.devsuite.vscode.enable`      | Installs VSCode FHS                  | `false` |
+| `programs.devsuite.vscode.depedencies` | List of Runtime Depedencies          | `[]`    |
+| `programs.devsuite.idea.enable`        | Installs IDEA Community with OpenJDK | `false` |
+
+## 📂 Directory Structure
 
 ```
 devsuite/
 ├── flake.nix # Entry point
 ├── README.md # This file
 └── modules/
-├── devsuite.nix # Master toggle + imports
-├── vscode.nix # VSCode module
-└── idea.nix # IDEA module
+    ├── devsuite.nix # Master toggle + imports
+    ├── vscode.nix # VSCode module
+    └── idea.nix # IDEA module
 ```
 
-💡 Troubleshooting
+## 💡 Troubleshooting
 
 - VSCode FHS not launching? → Ensure you’re using a compatible desktop environment (e.g., Gnome, KDE) that supports fhs profiles.
 
@@ -78,5 +87,6 @@ devsuite/
 programs.devsuite.enable = false;
 ```
 
-📜 License
+## 📜 License
+
 MIT — use it freely, fork it fully.
