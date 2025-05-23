@@ -4,17 +4,20 @@
   pkgs,
   ...
 }:
-
-with lib;
-
-{
-  options.programs.devsuite.idea.enable = mkEnableOption "Enable JetBrains IDEA Community Edition with OpenJDK";
-
-  config = mkIf config.programs.devsuite.idea.enable {
-    environment.systemPackages = [
-      (pkgs.jetbrains.idea-community.override {
-        jdk = pkgs.openjdk;
-      })
-    ];
+with lib; let
+  cfg = config.programs.devsuite.idea;
+in {
+  options.programs.devsuite.idea = {
+    community.enable = mkEnableOption "Enable JetBrains IDEA Community Edition with OpenJDK";
+    ultimate.enable = mkEnableOption "Enable JetBrains IDEA Ultimate Edition with OpenJDK";
   };
+
+  config = mkMerge [
+    (mkIf cfg.community.enable {
+      environment.systemPackages = [pkgs.jetbrains.idea-community];
+    })
+    (mkIf cfg.ultimate.enable {
+      environment.systemPackages = [pkgs.jetbrains.idea-ultimate];
+    })
+  ];
 }
