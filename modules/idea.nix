@@ -14,10 +14,10 @@ in {
 
   config = mkMerge [
     (mkIf cfg.community.enable {
-      environment.systemPackages = [pkgs.jetbrains.idea-community];
+      home.packages = [pkgs.jetbrains.idea-community];
     })
     (mkIf cfg.ultimate.enable {
-      environment.systemPackages = [pkgs.jetbrains.idea-ultimate];
+      home.packages = [pkgs.jetbrains.idea-ultimate];
     })
   ];
 }
