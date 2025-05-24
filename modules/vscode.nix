@@ -7,7 +7,7 @@
 with lib; let
   cfg = config.programs.devsuite.vscode;
 in {
-  cfg.vscode = {
+  options.programs.devsuite.vscode = {
     enable = mkEnableOption "Enable FHS-compatible VSCode";
   };
 
