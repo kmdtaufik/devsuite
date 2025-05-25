@@ -4,19 +4,17 @@
   pkgs,
   ...
 }:
-with lib; let
-  cfg = config.programs.devsuite.idea;
-in {
+with lib; {
   options.programs.devsuite.idea = {
     community.enable = mkEnableOption "Enable JetBrains IDEA Community Edition with OpenJDK";
     ultimate.enable = mkEnableOption "Enable JetBrains IDEA Ultimate Edition with OpenJDK";
   };
 
   config = mkMerge [
-    (mkIf cfg.community.enable {
+    (mkIf config.programs.devsuite.idea.community.enable {
       home.packages = [pkgs.jetbrains.idea-community];
     })
-    (mkIf cfg.ultimate.enable {
+    (mkIf config.programs.devsuite.idea.ultimate.enable {
       home.packages = [pkgs.jetbrains.idea-ultimate];
     })
   ];

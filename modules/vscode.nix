@@ -4,14 +4,12 @@
   pkgs,
   ...
 }:
-with lib; let
-  cfg = config.programs.devsuite.vscode;
-in {
+with lib; {
   options.programs.devsuite.vscode = {
     enable = mkEnableOption "Enable FHS-compatible VSCode";
   };
 
-  config = mkIf cfg.enable {
+  config = mkIf config.programs.devsuite.vscode.enable {
     home.packages = [pkgs.vscode.fhs];
   };
 }
