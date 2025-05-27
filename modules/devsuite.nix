@@ -4,18 +4,20 @@
   pkgs,
   ...
 }:
-with lib; {
+with lib;
+{
   imports = [
     ./vscode.nix
     ./idea.nix
     ./webstorm.nix
+    ./pycharm.nix
   ];
 
   options.programs.devsuite = {
     enable = mkEnableOption "Enable the DevSuite bundle";
     dependencies = mkOption {
       type = with types; listOf package;
-      default = [];
+      default = [ ];
       description = "List of packages to be added to the user environment (e.g., [pkgs.nodejs pkgs.gcc pkgs.openjdk]).";
     };
   };
