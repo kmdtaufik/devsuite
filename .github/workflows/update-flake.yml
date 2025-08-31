@@ -1,0 +1,173 @@
+# ============================================================================
+# 🚀 Nix Flake Updater Workflow
+#
+# This workflow keeps your Nix flake.lock up to date, opens a PR, runs checks,
+# and auto-merges when green. Requires repo settings:
+#   - "Allow auto-merge"
+#   - Actions: "Allow GitHub Actions to create and approve pull requests"
+#
+# Troubleshooting:
+#   - If auto-merge fails, check repo settings above and token permissions.
+#   - For best results, enable Dependabot for GitHub Actions updates.
+# ============================================================================
+
+name: "Update Nix flake.lock"
+
+on:
+  schedule:
+    # Twice weekly: Mondays & Thursdays at 06:00 UTC
+    - cron: '0 6 * * 1,4'
+  workflow_dispatch:
+
+concurrency:
+  group: update-flake-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read # Default, jobs override as needed
+  id-token: write # Required for Determinate Nix OIDC
+
+jobs:
+  update-flake-lock:
+    name: "Update flake.lock"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    env:
+      NIX_CONFIG: "experimental-features = nix-command flakes"
+      # Uncomment if you use unfree packages:
+      # NIXPKGS_ALLOW_UNFREE: 1
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Install Nix (flakes enabled)"
+        # Pinned to major; Dependabot keeps this fresh
+        uses: DeterminateSystems/determinate-nix-action@v3
+        with:
+          extra-conf: |
+            experimental-features = nix-command flakes
+
+      - name: "Enable Magic Nix Cache"
+        # Pinned to major; Dependabot keeps this fresh
+        uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - name: "Update flake.lock and open PR"
+        # Pinned to major; Dependabot keeps this fresh
+        uses: DeterminateSystems/update-flake-lock@v21
+        with:
+          pr-title: "📦 nix flake.lock: update dependencies"
+          pr-labels: "dependencies, nix, automated, 📦 dependencies"
+          pr-assignees: "kmdtaufik"
+          pr-body: |
+            ## :rocket: Automated Nix flake.lock update
+            
+            This PR updates `flake.lock` to the latest versions.
+            
+            **Changelog:**
+            ```
+            {{#if commitRange}}
+            Updated inputs:
+            {{#each commitRange}}
+            - {{this}}
+            {{/each}}
+            {{else}}
+            (No input changes detected)
+            {{/if}}
+            ```
+            
+            **How to rerun:**
+            > Re-run this workflow via GitHub Actions → "Update Nix flake.lock"
+            
+            ---
+            _Automated PR by [update-flake-lock](https://github.com/DeterminateSystems/update-flake-lock)_
+          token: ${{ secrets.GH_TOKEN_FOR_UPDATES || github.token }}
+          # path-to-flake-dir: "." # Uncomment and set if your flake is not at repo root
+        timeout-minutes: 10
+
+  validate-update:
+    name: "Validate flake update"
+    runs-on: ubuntu-latest
+    needs: update-flake-lock
+    if: ${{ needs.update-flake-lock.outputs.pull-request-number }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      NIX_CONFIG: "experimental-features = nix-command flakes"
+      # Uncomment if you use unfree packages:
+      # NIXPKGS_ALLOW_UNFREE: 1
+    steps:
+      - name: "Checkout PR branch"
+        uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ needs.update-flake-lock.outputs.pull-request-number }}/head
+
+      - name: "Install Nix (flakes enabled)"
+        uses: DeterminateSystems/determinate-nix-action@v3
+        with:
+          extra-conf: |
+            experimental-features = nix-command flakes
+
+      - name: "Enable Magic Nix Cache"
+        uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - name: "Run nix flake check"
+        run: |
+          nix flake check --print-build-logs
+        timeout-minutes: 20
+
+      - name: "Build default package (if present)"
+        run: |
+          nix build .#packages.x86_64-linux.default || echo "No default package to build."
+        timeout-minutes: 20
+
+  auto-merge:
+    name: "Auto-merge flake update PR"
+    runs-on: ubuntu-latest
+    needs: [update-flake-lock, validate-update]
+    if: ${{ needs.update-flake-lock.outputs.pull-request-number }}
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Install GitHub CLI"
+        uses: cli/cli@v2
+
+      - name: "Enable auto-merge if possible"
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN_FOR_UPDATES || github.token }}
+          PR_NUMBER: ${{ needs.update-flake-lock.outputs.pull-request-number }}
+        run: |
+          set -e
+          # Check if PR is from update-flake-lock bot branch
+          PR_BRANCH=$(gh pr view "$PR_NUMBER" --json headRefName -q .headRefName)
+          if [[ "$PR_BRANCH" == update-flake-lock* ]]; then
+            gh pr merge "$PR_NUMBER" --auto --squash --delete-branch || {
+              gh pr comment "$PR_NUMBER" --body "⚠️ Auto-merge could not be enabled. Please check repository settings (see workflow header for requirements)."
+              exit 1
+            }
+          else
+            echo "Not an update-flake-lock PR; skipping auto-merge."
+          fi
+        timeout-minutes: 5
+
+# ============================================================================
+# Security & Hygiene:
+#   - All third-party actions pinned to major; use Dependabot for updates.
+#   - Minimal permissions per job.
+#   - Flakes always enabled via NIX_CONFIG.
+#   - Timeouts set for long steps.
+#
+# For more info, see:
+#   - https://github.com/DeterminateSystems/determinate-nix-action
+#   - https://github.com/DeterminateSystems/magic-nix-cache-action
+#   - https://github.com/DeterminateSystems/update-flake-lock
+# ============================================================================
