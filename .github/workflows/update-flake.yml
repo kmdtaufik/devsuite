@@ -24,12 +24,7 @@ on:
     # Twice weekly: Mondays & Thursdays at 06:00 UTC
     - cron: '0 6 * * 1,4'
   workflow_dispatch:
-    inputs:
-      test-mode:
-        description: 'Test mode (creates PR but skips auto-merge)'
-        required: false
-        default: false
-        type: boolean
+
 
 concurrency:
   group: update-flake-${{ github.ref }}
@@ -42,11 +37,9 @@ permissions:
   issues: write # Required for PR assignments
 
 jobs:
-  update-flake-lock:
-    name: "Update flake.lock"
+  update-and-merge:
+    name: "Update flake.lock and auto-merge"
     runs-on: ubuntu-latest
-    outputs:
-      pull-request-number: ${{ steps.update.outputs.pull-request-number }}
     permissions:
       contents: write
       pull-requests: write
@@ -54,155 +47,29 @@ jobs:
       id-token: write
     env:
       NIX_CONFIG: "experimental-features = nix-command flakes"
-      # Uncomment if you use unfree packages:
       NIXPKGS_ALLOW_UNFREE: 1
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v5
 
-      - name: "Install Nix (flakes enabled)"
-        # Pinned to major; Dependabot keeps this fresh
-        uses: DeterminateSystems/determinate-nix-action@v3
-        with:
-          extra-conf: |
-            experimental-features = nix-command flakes
-
-      - name: "Enable Magic Nix Cache"
-        # Pinned to major; Dependabot keeps this fresh
-        uses: DeterminateSystems/magic-nix-cache-action@v13
-
-      - name: "Update flake.lock and open PR"
-        id: update
-        # Pinned to major; Dependabot keeps this fresh
+      - name: "Update flake.lock and open PR with auto-merge"
         uses: DeterminateSystems/update-flake-lock@v27
         with:
           pr-title: "📦 nix flake.lock: update dependencies"
-          pr-labels: "dependencies, nix, automated, 📦 dependencies"
+          pr-labels: "dependencies, nix, automated"
           pr-assignees: "kmdtaufik"
           pr-body: |
             ## :rocket: Automated Nix flake.lock update
 
-            This PR updates `flake.lock` to the latest versions.
-
-            **Changelog:**
-            ```
-            {{#if commitRange}}
-            Updated inputs:
-            {{#each commitRange}}
-            - {{this}}
-            {{/each}}
-            {{else}}
-            (No input changes detected)
-            {{/if}}
-            ```
+            This PR updates `flake.lock` to the latest versions and will auto-merge when ready.
 
             **How to rerun:**
             > Re-run this workflow via GitHub Actions → "Update Nix flake.lock"
 
             ---
             _Automated PR by [update-flake-lock](https://github.com/DeterminateSystems/update-flake-lock)_
-
-            ${{ github.event.inputs.test-mode == 'true' && '🧪 **TEST MODE**: Auto-merge disabled for testing' || '' }}
-          token: ${{github.token}}
-          # path-to-flake-dir: "." # Uncomment and set if your flake is not at repo root
+          token: ${{ github.token }}
         timeout-minutes: 10
-
-  validate-update:
-    name: "Validate flake update"
-    runs-on: ubuntu-latest
-    needs: update-flake-lock
-    if: ${{ needs.update-flake-lock.outputs.pull-request-number }}
-    permissions:
-      contents: read
-      id-token: write
-    env:
-      NIX_CONFIG: "experimental-features = nix-command flakes"
-      # Uncomment if you use unfree packages:
-      NIXPKGS_ALLOW_UNFREE: 1
-    steps:
-      - name: "Checkout PR branch"
-        uses: actions/checkout@v5
-        with:
-          ref: refs/pull/${{ needs.update-flake-lock.outputs.pull-request-number }}/head
-
-      - name: "Install Nix (flakes enabled)"
-        uses: DeterminateSystems/determinate-nix-action@v3
-        with:
-          extra-conf: |
-            experimental-features = nix-command flakes
-
-      - name: "Enable Magic Nix Cache"
-        uses: DeterminateSystems/magic-nix-cache-action@v13
-
-      - name: "Run nix flake check"
-        id: flake-check
-        run: |
-          nix flake check --print-build-logs
-        timeout-minutes: 20
-
-      - name: "Build default package (if present)"
-        id: build-package
-        run: |
-          nix build .#packages.x86_64-linux.default || echo "No default package to build."
-        timeout-minutes: 20
-
-  auto-merge:
-    name: "Auto-merge flake update PR"
-    runs-on: ubuntu-latest
-    needs: [update-flake-lock, validate-update]
-    if: ${{ needs.update-flake-lock.outputs.pull-request-number && github.event.inputs.test-mode != 'true' }}
-    permissions:
-      contents: write
-      pull-requests: write
-      id-token: write
-    steps:
-      - name: "Checkout repository"
-        uses: actions/checkout@v5
-
-      - name: "Enable auto-merge if possible"
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN_FOR_UPDATES || github.token }}
-          PR_NUMBER: ${{ needs.update-flake-lock.outputs.pull-request-number }}
-        run: |
-          set -e
-          # Check if PR is from update-flake-lock bot branch
-          PR_BRANCH=$(gh pr view "$PR_NUMBER" --json headRefName -q .headRefName)
-          if [[ "$PR_BRANCH" == update-flake-lock* ]]; then
-            echo "🚀 Enabling auto-merge for PR #$PR_NUMBER..."
-            gh pr merge "$PR_NUMBER" --auto --squash --delete-branch || {
-              echo "⚠️ Auto-merge failed. Adding comment to PR..."
-              gh pr comment "$PR_NUMBER" --body "⚠️ **Auto-merge could not be enabled**
-
-          Please check the following repository settings:
-          1. **Settings → General → Pull Requests**: \"Allow auto-merge\" must be enabled
-          2. **Settings → Actions → General**: \"Allow GitHub Actions to create and approve pull requests\" must be enabled
-          3. If using a custom token, ensure it has sufficient permissions
-
-          You can manually merge this PR once checks pass, or re-run the workflow after fixing settings."
-              exit 1
-            }
-            echo "✅ Auto-merge enabled successfully!"
-          else
-            echo "❌ Not an update-flake-lock PR (branch: $PR_BRANCH); skipping auto-merge."
-          fi
-        timeout-minutes: 5
-
-  # Test mode summary job
-  test-summary:
-    name: "Test Mode Summary"
-    runs-on: ubuntu-latest
-    needs: [update-flake-lock, validate-update]
-    if: ${{ github.event.inputs.test-mode == 'true' && needs.update-flake-lock.outputs.pull-request-number }}
-    steps:
-      - name: "Test mode completion"
-        run: |
-          echo "🧪 **TEST MODE COMPLETE**"
-          echo ""
-          echo "✅ Flake update PR created: #${{ needs.update-flake-lock.outputs.pull-request-number }}"
-          echo "✅ Validation checks passed"
-          echo "⏸️ Auto-merge skipped (test mode)"
-          echo ""
-          echo "To enable auto-merge, re-run without test mode enabled."
 
 # ============================================================================
 # Security & Hygiene:
