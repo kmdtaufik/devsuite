@@ -28,7 +28,7 @@ on:
       test-mode:
         description: 'Test mode (creates PR but skips auto-merge)'
         required: false
-        default: 'false'
+        default: false
         type: boolean
 
 concurrency:
@@ -168,12 +168,12 @@ jobs:
               echo "⚠️ Auto-merge failed. Adding comment to PR..."
               gh pr comment "$PR_NUMBER" --body "⚠️ **Auto-merge could not be enabled**
 
-Please check the following repository settings:
-1. **Settings → General → Pull Requests**: \"Allow auto-merge\" must be enabled
-2. **Settings → Actions → General**: \"Allow GitHub Actions to create and approve pull requests\" must be enabled
-3. If using a custom token, ensure it has sufficient permissions
+              Please check the following repository settings:
+              1. **Settings → General → Pull Requests**: \"Allow auto-merge\" must be enabled
+              2. **Settings → Actions → General**: \"Allow GitHub Actions to create and approve pull requests\" must be enabled
+              3. If using a custom token, ensure it has sufficient permissions
 
-You can manually merge this PR once checks pass, or re-run the workflow after fixing settings."
+              You can manually merge this PR once checks pass, or re-run the workflow after fixing settings."
               exit 1
             }
             echo "✅ Auto-merge enabled successfully!"
