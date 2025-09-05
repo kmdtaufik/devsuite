@@ -69,7 +69,7 @@ jobs:
 
       - name: "Enable Magic Nix Cache"
         # Pinned to major; Dependabot keeps this fresh
-        uses: DeterminateSystems/magic-nix-cache-action@v2
+        uses: DeterminateSystems/magic-nix-cache-action@v13
 
       - name: "Update flake.lock and open PR"
         id: update
@@ -132,7 +132,7 @@ jobs:
             experimental-features = nix-command flakes
 
       - name: "Enable Magic Nix Cache"
-        uses: DeterminateSystems/magic-nix-cache-action@v2
+        uses: DeterminateSystems/magic-nix-cache-action@v13
 
       - name: "Run nix flake check"
         id: flake-check
