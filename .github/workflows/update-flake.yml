@@ -1,15 +1,14 @@
 # ============================================================================
 # 🚀 Nix Flake Updater Workflow
 #
-# This workflow keeps your Nix flake.lock up to date, opens a PR, runs checks,
-# and auto-merges when green.
+# This workflow keeps your Nix flake.lock up to date, opens a PR, and
+# auto-merges it automatically.
 #
 # REQUIRED REPO SETTINGS:
 #   1. Settings → Actions → General → Workflow permissions:
 #      "Allow GitHub Actions to create and approve pull requests" ✅
 #   2. Settings → General → Pull Requests:
 #      "Allow auto-merge" ✅
-#   3. Optional: Create secret GH_TOKEN_FOR_UPDATES with a PAT for better CI
 #
 # Troubleshooting:
 #   - If you get "not permitted to create pull requests", enable setting #1 above
@@ -51,6 +50,17 @@ jobs:
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v5
+
+      - name: "Install Nix (flakes enabled)"
+        # Pinned to major; Dependabot keeps this fresh
+        uses: DeterminateSystems/determinate-nix-action@v3
+        with:
+          extra-conf: |
+            experimental-features = nix-command flakes
+
+      - name: "Enable Magic Nix Cache"
+        # Pinned to major; Dependabot keeps this fresh
+        uses: DeterminateSystems/magic-nix-cache-action@v13
 
       - name: "Update flake.lock and open PR with auto-merge"
         uses: DeterminateSystems/update-flake-lock@v27
