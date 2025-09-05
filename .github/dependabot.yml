@@ -1,0 +1,98 @@
+# ============================================================================
+# 🤖 Dependabot Configuration for DevSuite
+#
+# This configuration keeps dependencies up to date across:
+# - GitHub Actions workflows
+# - Documentation and config files
+#
+# Note: Nix flake.lock updates are handled by the dedicated workflow
+# (update-flake.yml) since Dependabot doesn't natively support Nix flakes.
+# ============================================================================
+
+version: 2
+updates:
+  # ──────────────────────────────────────────────────────────────────────────
+  # 🚀 GitHub Actions Dependencies
+  # ──────────────────────────────────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    commit-message:
+      prefix: "ci"
+      prefix-development: "ci"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "🤖 dependabot"
+    reviewers:
+      - "kmdtaufik"
+    assignees:
+      - "kmdtaufik"
+    open-pull-requests-limit: 5
+    # Group related updates together
+    groups:
+      determinate-systems:
+        patterns:
+          - "DeterminateSystems/*"
+        update-types:
+          - "minor"
+          - "patch"
+      github-actions:
+        patterns:
+          - "actions/*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 📄 Documentation and Config Files (optional, if you add package.json, etc.)
+  # ──────────────────────────────────────────────────────────────────────────
+  # Uncomment and customize as needed for any Node.js tooling, docs, etc.
+  #
+  # - package-ecosystem: "npm"
+  #   directory: "/"
+  #   schedule:
+  #     interval: "weekly"
+  #     day: "tuesday"
+  #     time: "06:00"
+  #     timezone: "UTC"
+  #   commit-message:
+  #     prefix: "deps"
+  #     include: "scope"
+  #   labels:
+  #     - "dependencies"
+  #     - "javascript"
+  #     - "🤖 dependabot"
+  #   reviewers:
+  #     - "kmdtaufik"
+  #   assignees:
+  #     - "kmdtaufik"
+  #   open-pull-requests-limit: 3
+
+# ============================================================================
+# Configuration Notes:
+#
+# 📝 What's Covered:
+#   ✅ GitHub Actions workflows (actions/checkout, etc.)
+#   ✅ Determinate Systems actions (nix-action, update-flake-lock, etc.)
+#   ❌ Nix flake.lock (handled by update-flake.yml workflow)
+#
+# 🔧 Customization:
+#   - Adjust schedule frequency as needed
+#   - Add more ecosystems (npm, pip, docker) if you add those files
+#   - Modify grouping patterns to match your preference
+#
+# 🚨 Important:
+#   - Nix flakes aren't natively supported by Dependabot
+#   - Your update-flake.yml workflow handles Nix dependency updates
+#   - This config focuses on GitHub Actions and any future ecosystems
+#
+# 📚 References:
+#   - https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#   - https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/about-dependabot-version-updates
+# ============================================================================

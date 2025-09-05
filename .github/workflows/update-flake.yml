@@ -2,7 +2,7 @@
 # 🚀 Nix Flake Updater Workflow
 #
 # This workflow keeps your Nix flake.lock up to date, opens a PR, runs checks,
-# and auto-merges when green. 
+# and auto-merges when green.
 #
 # REQUIRED REPO SETTINGS:
 #   1. Settings → Actions → General → Workflow permissions:
@@ -45,6 +45,8 @@ jobs:
   update-flake-lock:
     name: "Update flake.lock"
     runs-on: ubuntu-latest
+    outputs:
+      pull-request-number: ${{ steps.update.outputs.pull-request-number }}
     permissions:
       contents: write
       pull-requests: write
@@ -70,6 +72,7 @@ jobs:
         uses: DeterminateSystems/magic-nix-cache-action@v2
 
       - name: "Update flake.lock and open PR"
+        id: update
         # Pinned to major; Dependabot keeps this fresh
         uses: DeterminateSystems/update-flake-lock@v21
         with:
@@ -78,9 +81,9 @@ jobs:
           pr-assignees: "kmdtaufik"
           pr-body: |
             ## :rocket: Automated Nix flake.lock update
-            
+
             This PR updates `flake.lock` to the latest versions.
-            
+
             **Changelog:**
             ```
             {{#if commitRange}}
@@ -92,13 +95,13 @@ jobs:
             (No input changes detected)
             {{/if}}
             ```
-            
+
             **How to rerun:**
             > Re-run this workflow via GitHub Actions → "Update Nix flake.lock"
-            
+
             ---
             _Automated PR by [update-flake-lock](https://github.com/DeterminateSystems/update-flake-lock)_
-            
+
             ${{ github.event.inputs.test-mode == 'true' && '🧪 **TEST MODE**: Auto-merge disabled for testing' || '' }}
           token: ${{github.token}}
           # path-to-flake-dir: "." # Uncomment and set if your flake is not at repo root
@@ -132,11 +135,13 @@ jobs:
         uses: DeterminateSystems/magic-nix-cache-action@v2
 
       - name: "Run nix flake check"
+        id: flake-check
         run: |
           nix flake check --print-build-logs
         timeout-minutes: 20
 
       - name: "Build default package (if present)"
+        id: build-package
         run: |
           nix build .#packages.x86_64-linux.default || echo "No default package to build."
         timeout-minutes: 20
@@ -167,12 +172,12 @@ jobs:
             gh pr merge "$PR_NUMBER" --auto --squash --delete-branch || {
               echo "⚠️ Auto-merge failed. Adding comment to PR..."
               gh pr comment "$PR_NUMBER" --body "⚠️ **Auto-merge could not be enabled**
-          
+
           Please check the following repository settings:
-          1. **Settings → General → Pull Requests**: \"Allow auto-merge\" must be enabled  
+          1. **Settings → General → Pull Requests**: \"Allow auto-merge\" must be enabled
           2. **Settings → Actions → General**: \"Allow GitHub Actions to create and approve pull requests\" must be enabled
           3. If using a custom token, ensure it has sufficient permissions
-          
+
           You can manually merge this PR once checks pass, or re-run the workflow after fixing settings."
               exit 1
             }
