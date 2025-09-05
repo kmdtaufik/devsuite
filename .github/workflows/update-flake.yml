@@ -58,7 +58,7 @@ jobs:
       NIXPKGS_ALLOW_UNFREE: 1
     steps:
       - name: "Checkout repository"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: "Install Nix (flakes enabled)"
         # Pinned to major; Dependabot keeps this fresh
@@ -121,7 +121,7 @@ jobs:
       NIXPKGS_ALLOW_UNFREE: 1
     steps:
       - name: "Checkout PR branch"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: refs/pull/${{ needs.update-flake-lock.outputs.pull-request-number }}/head
 
@@ -157,7 +157,7 @@ jobs:
       id-token: write
     steps:
       - name: "Checkout repository"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: "Enable auto-merge if possible"
         env:
