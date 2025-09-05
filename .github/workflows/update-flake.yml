@@ -2,13 +2,19 @@
 # 🚀 Nix Flake Updater Workflow
 #
 # This workflow keeps your Nix flake.lock up to date, opens a PR, runs checks,
-# and auto-merges when green. Requires repo settings:
-#   - "Allow auto-merge"
-#   - Actions: "Allow GitHub Actions to create and approve pull requests"
+# and auto-merges when green. 
+#
+# REQUIRED REPO SETTINGS:
+#   1. Settings → Actions → General → Workflow permissions:
+#      "Allow GitHub Actions to create and approve pull requests" ✅
+#   2. Settings → General → Pull Requests:
+#      "Allow auto-merge" ✅
+#   3. Optional: Create secret GH_TOKEN_FOR_UPDATES with a PAT for better CI
 #
 # Troubleshooting:
-#   - If auto-merge fails, check repo settings above and token permissions.
-#   - For best results, enable Dependabot for GitHub Actions updates.
+#   - If you get "not permitted to create pull requests", enable setting #1 above
+#   - If auto-merge fails, check repo settings above and token permissions
+#   - For best results, enable Dependabot for GitHub Actions updates
 # ============================================================================
 
 name: "Update Nix flake.lock"
@@ -18,6 +24,12 @@ on:
     # Twice weekly: Mondays & Thursdays at 06:00 UTC
     - cron: '0 6 * * 1,4'
   workflow_dispatch:
+    inputs:
+      test-mode:
+        description: 'Test mode (creates PR but skips auto-merge)'
+        required: false
+        default: 'false'
+        type: boolean
 
 concurrency:
   group: update-flake-${{ github.ref }}
@@ -26,6 +38,8 @@ concurrency:
 permissions:
   contents: read # Default, jobs override as needed
   id-token: write # Required for Determinate Nix OIDC
+  pull-requests: write # Required for creating PRs
+  issues: write # Required for PR assignments
 
 jobs:
   update-flake-lock:
@@ -39,7 +53,7 @@ jobs:
     env:
       NIX_CONFIG: "experimental-features = nix-command flakes"
       # Uncomment if you use unfree packages:
-      # NIXPKGS_ALLOW_UNFREE: 1
+      NIXPKGS_ALLOW_UNFREE: 1
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v4
@@ -84,6 +98,8 @@ jobs:
             
             ---
             _Automated PR by [update-flake-lock](https://github.com/DeterminateSystems/update-flake-lock)_
+            
+            ${{ github.event.inputs.test-mode == 'true' && '🧪 **TEST MODE**: Auto-merge disabled for testing' || '' }}
           token: ${{ secrets.GH_TOKEN_FOR_UPDATES || github.token }}
           # path-to-flake-dir: "." # Uncomment and set if your flake is not at repo root
         timeout-minutes: 10
@@ -99,7 +115,7 @@ jobs:
     env:
       NIX_CONFIG: "experimental-features = nix-command flakes"
       # Uncomment if you use unfree packages:
-      # NIXPKGS_ALLOW_UNFREE: 1
+      NIXPKGS_ALLOW_UNFREE: 1
     steps:
       - name: "Checkout PR branch"
         uses: actions/checkout@v4
@@ -129,7 +145,7 @@ jobs:
     name: "Auto-merge flake update PR"
     runs-on: ubuntu-latest
     needs: [update-flake-lock, validate-update]
-    if: ${{ needs.update-flake-lock.outputs.pull-request-number }}
+    if: ${{ needs.update-flake-lock.outputs.pull-request-number && github.event.inputs.test-mode != 'true' }}
     permissions:
       contents: write
       pull-requests: write
@@ -137,9 +153,6 @@ jobs:
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v4
-
-      - name: "Install GitHub CLI"
-        uses: cli/cli@v2
 
       - name: "Enable auto-merge if possible"
         env:
@@ -150,14 +163,41 @@ jobs:
           # Check if PR is from update-flake-lock bot branch
           PR_BRANCH=$(gh pr view "$PR_NUMBER" --json headRefName -q .headRefName)
           if [[ "$PR_BRANCH" == update-flake-lock* ]]; then
+            echo "🚀 Enabling auto-merge for PR #$PR_NUMBER..."
             gh pr merge "$PR_NUMBER" --auto --squash --delete-branch || {
-              gh pr comment "$PR_NUMBER" --body "⚠️ Auto-merge could not be enabled. Please check repository settings (see workflow header for requirements)."
+              echo "⚠️ Auto-merge failed. Adding comment to PR..."
+              gh pr comment "$PR_NUMBER" --body "⚠️ **Auto-merge could not be enabled**
+
+Please check the following repository settings:
+1. **Settings → General → Pull Requests**: \"Allow auto-merge\" must be enabled
+2. **Settings → Actions → General**: \"Allow GitHub Actions to create and approve pull requests\" must be enabled
+3. If using a custom token, ensure it has sufficient permissions
+
+You can manually merge this PR once checks pass, or re-run the workflow after fixing settings."
               exit 1
             }
+            echo "✅ Auto-merge enabled successfully!"
           else
-            echo "Not an update-flake-lock PR; skipping auto-merge."
+            echo "❌ Not an update-flake-lock PR (branch: $PR_BRANCH); skipping auto-merge."
           fi
         timeout-minutes: 5
+
+  # Test mode summary job
+  test-summary:
+    name: "Test Mode Summary"
+    runs-on: ubuntu-latest
+    needs: [update-flake-lock, validate-update]
+    if: ${{ github.event.inputs.test-mode == 'true' && needs.update-flake-lock.outputs.pull-request-number }}
+    steps:
+      - name: "Test mode completion"
+        run: |
+          echo "🧪 **TEST MODE COMPLETE**"
+          echo ""
+          echo "✅ Flake update PR created: #${{ needs.update-flake-lock.outputs.pull-request-number }}"
+          echo "✅ Validation checks passed"
+          echo "⏸️ Auto-merge skipped (test mode)"
+          echo ""
+          echo "To enable auto-merge, re-run without test mode enabled."
 
 # ============================================================================
 # Security & Hygiene:
