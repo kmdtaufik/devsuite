@@ -65,19 +65,7 @@ jobs:
       - name: "Update flake.lock and open PR with auto-merge"
         uses: DeterminateSystems/update-flake-lock@v27
         with:
-          pr-title: "📦 nix flake.lock: update dependencies"
-          pr-labels: "dependencies, nix, automated"
-          pr-assignees: "kmdtaufik"
-          pr-body: |
-            ## :rocket: Automated Nix flake.lock update
 
-            This PR updates `flake.lock` to the latest versions and will auto-merge when ready.
-
-            **How to rerun:**
-            > Re-run this workflow via GitHub Actions → "Update Nix flake.lock"
-
-            ---
-            _Automated PR by [update-flake-lock](https://github.com/DeterminateSystems/update-flake-lock)_
           token: ${{ github.token }}
         timeout-minutes: 10
 
