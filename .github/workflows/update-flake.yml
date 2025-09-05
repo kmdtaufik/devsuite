@@ -74,7 +74,7 @@ jobs:
       - name: "Update flake.lock and open PR"
         id: update
         # Pinned to major; Dependabot keeps this fresh
-        uses: DeterminateSystems/update-flake-lock@v21
+        uses: DeterminateSystems/update-flake-lock@v27
         with:
           pr-title: "📦 nix flake.lock: update dependencies"
           pr-labels: "dependencies, nix, automated, 📦 dependencies"
