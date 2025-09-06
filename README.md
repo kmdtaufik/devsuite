@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./github/assets/devsuite.png" alt="DevSuite Logo" width="300" style="border-radius: 20px;">
+  <img src="https://raw.githubusercontent.com/kmdtaufik/devsuite/refs/heads/main/.github/assets/devsuite.png" alt="DevSuite Logo" width="300" style="border-radius: 20px;">
 </p>
 
 # 💻 DevSuite
