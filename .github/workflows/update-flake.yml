@@ -63,7 +63,7 @@ jobs:
         uses: DeterminateSystems/magic-nix-cache-action@v13
 
       - name: "Update flake.lock and open PR with auto-merge"
-        uses: DeterminateSystems/update-flake-lock@v27
+        uses: DeterminateSystems/update-flake-lock@v28
         with:
 
           token: ${{ github.token }}
