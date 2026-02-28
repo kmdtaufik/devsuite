@@ -49,7 +49,7 @@ jobs:
       NIXPKGS_ALLOW_UNFREE: 1
     steps:
       - name: "Checkout repository"
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: "Install Nix (flakes enabled)"
         # Pinned to major; Dependabot keeps this fresh
